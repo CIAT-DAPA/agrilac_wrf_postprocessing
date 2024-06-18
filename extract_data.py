@@ -41,33 +41,28 @@ def extract_data(path):
 
         QVAPOR = export_raster(dataset, file_name, "QVAPOR", True)
 
-        WS10m = calcWS10m(U10, V10, xtime, start_date_str)
+        WS10m = calcWS10m(U10, V10)
 
-        WS2m = calcWS2m(WS10m, xtime, start_date_str)
+        WS2m = calcWS2m(WS10m)
 
-        RH = calcRH(T2, P, PB, QVAPOR, xtime, start_date_str)
+        RH = calcRH(T2, P, PB, QVAPOR)
 
         dataset.close()
 
 
 
-def calcWS10m(U10, V10, xtime, start_date):
+def calcWS10m(U10, V10):
 
-    start_datetime = datetime.strptime(start_date, '%Y-%m-%d_%H:%M:%S')
 
     for index in range(0,len(os.listdir(U10))):
 
-        date = start_datetime + timedelta(minutes=int(xtime[index]))
-
-        date = date.strftime('%Y-%m-%d')
-
-        with rasterio.open(os.listdir(U10)[index]) as src_u10:
+        with rasterio.open(os.path.join(U10,os.listdir(U10)[index])) as src_u10:
             u10 = src_u10.read(1)
         
             transform = src_u10.transform
             crs = src_u10.crs
 
-        with rasterio.open(os.listdir(V10)[index]) as src_v10:
+        with rasterio.open(os.path.join(U10,os.listdir(V10)[index])) as src_v10:
             v10 = src_v10.read(1)
 
         print(f"Calculated WS10m")
@@ -79,7 +74,7 @@ def calcWS10m(U10, V10, xtime, start_date):
         if not os.path.exists(os.path.join(parent_dir, 'WS10m')):
             os.makedirs(os.path.join(parent_dir, 'WS10m'))
 
-        file_name = os.path.join(U10.replace("U10","WS10m"), f'WS10m_{date}.tif')
+        file_name = os.path.join(U10,os.listdir(U10)[index]).replace("U10","WS10m")
 
         with rasterio.open(
             file_name,
@@ -98,17 +93,12 @@ def calcWS10m(U10, V10, xtime, start_date):
 
     return U10.replace("U10","WS10m")
 
-def calcWS2m(WS10m, xtime, start_date):
+def calcWS2m(WS10m):
 
-    start_datetime = datetime.strptime(start_date, '%Y-%m-%d_%H:%M:%S')
 
     for index in range(0,len(os.listdir(WS10m))):
 
-        date = start_datetime + timedelta(minutes=int(xtime[index]))
-
-        date = date.strftime('%Y-%m-%d')
-
-        with rasterio.open(os.listdir(WS10m)[index])  as src_ws10m:
+        with rasterio.open(os.path.join(WS10m,os.listdir(WS10m)[index]))  as src_ws10m:
             ws10m = src_ws10m.read(1)
         
             transform = src_ws10m.transform
@@ -125,7 +115,7 @@ def calcWS2m(WS10m, xtime, start_date):
         if not os.path.exists(os.path.join(parent_dir, 'WS2m')):
             os.makedirs(os.path.join(parent_dir, 'WS2m'))
 
-        file_name = os.path.join(WS10m.replace("WS10m","WS2m"), f'WS2m_{date}.tif')
+        file_name = os.path.join(WS10m,os.listdir(WS10m)[index]).replace("WS10m","WS2m")
 
         with rasterio.open(
             file_name,
@@ -145,29 +135,24 @@ def calcWS2m(WS10m, xtime, start_date):
     return WS10m.replace("WS10m","WS2m")
 
 
-def calcRH(T2, P, PB, Q, xtime, start_date):
+def calcRH(T2, P, PB, Q):
 
-    start_datetime = datetime.strptime(start_date, '%Y-%m-%d_%H:%M:%S')
 
     for index in range(0,len(os.listdir(T2))):
 
-        date = start_datetime + timedelta(minutes=int(xtime[index]))
-
-        date = date.strftime('%Y-%m-%d')
-
-        with rasterio.open(os.listdir(T2)[index]) as src_t2:
+        with rasterio.open(os.path.join(T2,os.listdir(T2)[index])) as src_t2:
             t2 = src_t2.read(1)
         
             transform = src_t2.transform
             crs = src_t2.crs
 
-        with rasterio.open(os.listdir(P)[index]) as src_p:
+        with rasterio.open(os.path.join(P,os.listdir(P)[index])) as src_p:
             p = src_p.read(1)
 
-        with rasterio.open(os.listdir(PB)[index]) as src_pb:
+        with rasterio.open(os.path.join(PB,os.listdir(PB)[index])) as src_pb:
             pb = src_pb.read(1)
 
-        with rasterio.open(os.listdir(Q)[index]) as src_q:
+        with rasterio.open(os.path.join(Q,os.listdir(Q)[index])) as src_q:
             q = src_q.read(1)
 
         print(f"Calculated RH")
@@ -191,7 +176,7 @@ def calcRH(T2, P, PB, Q, xtime, start_date):
         if not os.path.exists(os.path.join(parent_dir, 'RH')):
             os.makedirs(os.path.join(parent_dir, 'RH'))
 
-        file_name = os.path.join(T2.replace("T2","RH"), f'RH_{date}.tif')
+        file_name = os.path.join(T2,os.listdir(T2)[index]).replace("T2","RH")
 
         with rasterio.open(
             file_name,

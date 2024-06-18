@@ -92,11 +92,11 @@ def export_raster(dataset, file_name, specific_variable, is4Dim=False):
         ) as dst:
             dst.write(result_variable, 1)
 
-        print(f"Raster for day {date} created successfully")
+        print(f"Raster for: {specific_variable} day: {date} created successfully")
 
         cut_rasters(raster_filename, shp_path)
 
-        print(f"Raster for day {date} cut successfully as '{raster_filename}'")
+        print(f"Raster for: {specific_variable} day: {date} cut successfully as '{raster_filename}'")
 
     return var_output
 
