@@ -45,5 +45,7 @@ def cut_rasters(raster_filename, shp_path):
         })
 
         # Guardar el raster recortado
-        with rasterio.open(raster_filename, "w", **out_meta) as dest:
+        with rasterio.open(raster_filename.replace(os.path.basename(raster_filename), os.path.basename(raster_filename).replace("_raster","")), "w", **out_meta) as dest:
             dest.write(out_image)
+
+    os.remove(raster_filename)

@@ -4,9 +4,11 @@ import rasterio
 from rasterio.transform import from_origin
 import os
 from cut_map import cut_rasters
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
 
-def export_raster(dataset, file_name, specific_variable):
+def export_raster(dataset, file_name, specific_variable, is4Dim=False):
 
     # Get the current script directory
     current_path = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +38,9 @@ def export_raster(dataset, file_name, specific_variable):
     # Check dimensions
     print(f"Dimensions of {specific_variable}: {var_data.shape}")
 
+    if is4Dim:
+        var_data = var_data[:, 0, :, :]
+
     # Assume dimensions are [time, lat, lon]
     time_index = 0  # Select a time index for coordinates
 
@@ -48,31 +53,51 @@ def export_raster(dataset, file_name, specific_variable):
     res_lon = abs(lon[1] - lon[0])
     transform = from_origin(lon.min(), inv_lat.max(), res_lon, res_lat)
 
-    # Calculate the accumulated sum of bands for the specific variable
-    result_variable = np.sum(var_data, axis=0) if specific_variable == "RAINNC" else np.mean(var_data, axis=0)
+    if specific_variable == "T2":
+        var_data = var_data - 273
 
-    # Create a unique name for the raster file
-    raster_filename = os.path.join(var_output, f'{specific_variable}_raster.tif')
+    xtime = dataset.variables['XTIME'][:]
 
-    # Create the raster file with the accumulated sum or the mean as a single band
-    with rasterio.open(
-            raster_filename,
-            'w',
-            driver='GTiff',
-            height=result_variable.shape[0],
-            width=result_variable.shape[1],
-            count=1,  # Only one band for the accumulated sum or the mean
-            dtype=result_variable.dtype,
-            crs='+proj=latlong',
-            transform=transform,
-    ) as dst:
-        dst.write(result_variable, 1)
+    # Iterate over each day (8 intervals per day)
+    for day in range(var_data.shape[0] // 8):
+        start_index = day * 8
+        end_index = start_index + 8
 
-    print(f"Raster created successfully")
+        start_date_str = dataset.START_DATE
+        start_datetime = datetime.strptime(start_date_str, '%Y-%m-%d_%H:%M:%S')
 
-    cut_rasters(raster_filename, shp_path)
+        date = start_datetime + timedelta(minutes=int(xtime[start_index]))
 
-    print(f"Raster cut successfully as '{raster_filename}'")
+        date = date.strftime('%Y-%m-%d')
 
-    return result_variable
+        daily_data = var_data[start_index:end_index, :, :]
+
+        # Calculate the accumulated sum or mean of the daily data
+        result_variable = np.sum(daily_data, axis=0) if specific_variable == "RAINNC" else np.mean(daily_data, axis=0)
+
+        # Create a unique name for the raster file
+        raster_filename = os.path.join(var_output, f'{specific_variable}_{date}_raster.tif')
+
+        # Create the raster file with the accumulated sum or the mean as a single band
+        with rasterio.open(
+                raster_filename,
+                'w',
+                driver='GTiff',
+                height=result_variable.shape[0],
+                width=result_variable.shape[1],
+                count=1,  # Only one band for the accumulated sum or the mean
+                dtype=result_variable.dtype,
+                crs='+proj=latlong',
+                transform=transform,
+        ) as dst:
+            dst.write(result_variable, 1)
+
+        print(f"Raster for day {date} created successfully")
+
+        cut_rasters(raster_filename, shp_path)
+
+        print(f"Raster for day {date} cut successfully as '{raster_filename}'")
+
+    return var_output
+
 
