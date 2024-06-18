@@ -62,7 +62,7 @@ def calcWS10m(U10, V10):
             transform = src_u10.transform
             crs = src_u10.crs
 
-        with rasterio.open(os.path.join(U10,os.listdir(V10)[index])) as src_v10:
+        with rasterio.open(os.path.join(V10,os.listdir(V10)[index])) as src_v10:
             v10 = src_v10.read(1)
 
         print(f"Calculated WS10m")
