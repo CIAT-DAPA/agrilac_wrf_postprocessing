@@ -3,7 +3,7 @@ import netCDF4 as nc
 import numpy as np
 import rasterio as rio
 from rasterio.transform import from_origin
-from export_average import export_raster
+from .export_average import export_raster
 import rasterio
 
 
