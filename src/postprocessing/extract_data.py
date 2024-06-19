@@ -9,7 +9,7 @@ import rasterio
 
 def extract_data(inputs_path, outputs_path):
 
-    shp_path = os.path.join(inputs_path, "shapefile")
+    
     inputs_path = os.path.join(inputs_path, "wrf")
 
     # Filtrar solo los archivos
@@ -22,23 +22,23 @@ def extract_data(inputs_path, outputs_path):
 
         dataset = nc.Dataset(file)
 
-        T2 = export_raster(dataset, file_name, "T2", outputs_path, shp_path)
+        T2 = export_raster(dataset, file_name, "T2", outputs_path, inputs_path)
 
-        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, shp_path)
+        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, inputs_path)
         
-        HGT = export_raster(dataset, file_name, "HGT", outputs_path, shp_path)
+        HGT = export_raster(dataset, file_name, "HGT", outputs_path, inputs_path)
         
-        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, shp_path)
+        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, inputs_path)
 
-        U10 = export_raster(dataset, file_name, "U10", outputs_path, shp_path)
+        U10 = export_raster(dataset, file_name, "U10", outputs_path, inputs_path)
         
-        V10 = export_raster(dataset, file_name, "V10", outputs_path, shp_path)
+        V10 = export_raster(dataset, file_name, "V10", outputs_path, inputs_path)
 
-        P = export_raster(dataset, file_name, "P", outputs_path, shp_path, True)
+        P = export_raster(dataset, file_name, "P", outputs_path, inputs_path, True)
 
-        PB = export_raster(dataset, file_name, "PB", outputs_path, shp_path, True)
+        PB = export_raster(dataset, file_name, "PB", outputs_path, inputs_path, True)
 
-        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, shp_path, True)
+        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, inputs_path, True)
 
         WS10m = calcWS10m(U10, V10)
 

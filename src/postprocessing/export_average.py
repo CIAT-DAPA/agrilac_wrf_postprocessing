@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
 
-def export_raster(dataset, file_name, specific_variable, output_path, shp_path, is4Dim=False):
+def export_raster(dataset, file_name, specific_variable, output_path, inputs_path, is4Dim=False):
 
     # Get the current script directory
     output_path_folder = os.path.join(output_path, file_name)
+    shp_path = os.path.join(inputs_path, "shapefile")
+    data_path = os.path.join(inputs_path, "data")
     shp_path = os.path.join(shp_path, "limite_nacional_2011", "limite_nacional_2011.shp")
 
     if not os.path.exists(output_path):
