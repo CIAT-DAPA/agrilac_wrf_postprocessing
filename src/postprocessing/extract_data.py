@@ -48,7 +48,7 @@ def extract_data(inputs_path, outputs_path):
 
         dataset.close()
 
-        return True
+    return True
 
 
 
