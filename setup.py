@@ -32,7 +32,7 @@ setup(
         "cycler==0.12.1",
         "fiona==1.9.6",
         "fonttools==4.53.0",
-        "geopandas==0.14.4",
+        "geopandas==0.13.2",
         "kiwisolver==1.4.5",
         "matplotlib==3.9.0",
         "netCDF4==1.7.1",
