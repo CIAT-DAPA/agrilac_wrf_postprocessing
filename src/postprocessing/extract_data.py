@@ -5,13 +5,12 @@ import rasterio as rio
 from rasterio.transform import from_origin
 from export_average import export_raster
 import rasterio
-from datetime import datetime, timedelta
 
 
-def extract_data(path):
+def extract_data(inputs_path, outputs_path):
 
     # Filtrar solo los archivos
-    nc_files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith('.nc')]
+    nc_files = [os.path.join(inputs_path, file) for file in os.listdir(inputs_path) if file.endswith('.nc')]
 
     for file in nc_files:
 
@@ -20,26 +19,23 @@ def extract_data(path):
 
         dataset = nc.Dataset(file)
 
-        xtime = dataset.variables['XTIME'][:]
-        start_date_str = dataset.START_DATE
+        T2 = export_raster(dataset, file_name, "T2", outputs_path)
 
-        T2 = export_raster(dataset, file_name, "T2")
-
-        RAINNC = export_raster(dataset, file_name, "RAINNC")
+        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path)
         
-        HGT = export_raster(dataset, file_name, "HGT")
+        HGT = export_raster(dataset, file_name, "HGT", outputs_path)
         
-        SWDOWN = export_raster(dataset, file_name, "SWDOWN")
+        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path)
 
-        U10 = export_raster(dataset, file_name, "U10")
+        U10 = export_raster(dataset, file_name, "U10", outputs_path)
         
-        V10 = export_raster(dataset, file_name, "V10")
+        V10 = export_raster(dataset, file_name, "V10", outputs_path)
 
-        P = export_raster(dataset, file_name, "P", True)
+        P = export_raster(dataset, file_name, "P", outputs_path, True)
 
-        PB = export_raster(dataset, file_name, "PB", True)
+        PB = export_raster(dataset, file_name, "PB", outputs_path, True)
 
-        QVAPOR = export_raster(dataset, file_name, "QVAPOR", True)
+        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, True)
 
         WS10m = calcWS10m(U10, V10)
 
@@ -48,6 +44,8 @@ def extract_data(path):
         RH = calcRH(T2, P, PB, QVAPOR)
 
         dataset.close()
+
+        return True
 
 
 
