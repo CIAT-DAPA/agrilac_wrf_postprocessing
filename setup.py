@@ -15,7 +15,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     entry_points={
         'console_scripts': [
             'wrf_postprocessing=postprocessing.main:main',
@@ -28,11 +28,11 @@ setup(
         "click-plugins==1.1.1",
         "cligj==0.7.2",
         "colorama==0.4.6",
-        "contourpy==1.1.1",
+        "contourpy==1.2.1",
         "cycler==0.12.1",
         "fiona==1.9.6",
         "fonttools==4.53.0",
-        "geopandas==0.13.2",
+        "geopandas==0.14.4",
         "kiwisolver==1.4.5",
         "matplotlib==3.9.0",
         "netCDF4==1.7.1",
