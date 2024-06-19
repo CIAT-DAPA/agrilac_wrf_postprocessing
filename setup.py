@@ -34,7 +34,7 @@ setup(
         "fonttools==4.53.0",
         "geopandas==0.13.2",
         "kiwisolver==1.4.5",
-        "matplotlib==3.9.0",
+        "matplotlib==3.7.5",
         "netCDF4==1.7.1",
         "numpy==2.0.0",
         "packaging==24.1",
