@@ -1,6 +1,6 @@
 import argparse
 
-from extract_data import extract_data
+from .extract_data import extract_data
 
 def main():
 

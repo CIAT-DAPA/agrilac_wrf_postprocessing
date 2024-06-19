@@ -3,7 +3,7 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 import os
-from cut_map import cut_rasters
+from .cut_map import cut_rasters
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
