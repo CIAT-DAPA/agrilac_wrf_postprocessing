@@ -9,8 +9,11 @@ import rasterio
 
 def extract_data(inputs_path, outputs_path):
 
+    shp_path = os.path.join(inputs_path, "shapefile")
+    inputs_path = os.path.join(inputs_path, "wrf")
+
     # Filtrar solo los archivos
-    nc_files = [os.path.join(inputs_path, file) for file in os.listdir(inputs_path) if file.endswith('.nc')]
+    nc_files = [os.path.join(inputs_path, file) for file in os.listdir(inputs_path)]
 
     for file in nc_files:
 
@@ -19,23 +22,23 @@ def extract_data(inputs_path, outputs_path):
 
         dataset = nc.Dataset(file)
 
-        T2 = export_raster(dataset, file_name, "T2", outputs_path)
+        T2 = export_raster(dataset, file_name, "T2", outputs_path, shp_path)
 
-        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path)
+        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, shp_path)
         
-        HGT = export_raster(dataset, file_name, "HGT", outputs_path)
+        HGT = export_raster(dataset, file_name, "HGT", outputs_path, shp_path)
         
-        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path)
+        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, shp_path)
 
-        U10 = export_raster(dataset, file_name, "U10", outputs_path)
+        U10 = export_raster(dataset, file_name, "U10", outputs_path, shp_path)
         
-        V10 = export_raster(dataset, file_name, "V10", outputs_path)
+        V10 = export_raster(dataset, file_name, "V10", outputs_path, shp_path)
 
-        P = export_raster(dataset, file_name, "P", outputs_path, True)
+        P = export_raster(dataset, file_name, "P", outputs_path, shp_path, True)
 
-        PB = export_raster(dataset, file_name, "PB", outputs_path, True)
+        PB = export_raster(dataset, file_name, "PB", outputs_path, shp_path, True)
 
-        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, True)
+        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, shp_path, True)
 
         WS10m = calcWS10m(U10, V10)
 
@@ -192,6 +195,3 @@ def calcRH(T2, P, PB, Q):
         print(f"Raster {file_name} created successfully")
 
     return T2.replace("T2","RH")
-
-
-extract_data("D:\\Code\\Honduras\\Docker\\postprocessing\\files")
