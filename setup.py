@@ -28,7 +28,7 @@ setup(
         "click-plugins==1.1.1",
         "cligj==0.7.2",
         "colorama==0.4.6",
-        "contourpy==1.2.1",
+        "contourpy==1.1.1",
         "cycler==0.12.1",
         "fiona==1.9.6",
         "fonttools==4.53.0",
