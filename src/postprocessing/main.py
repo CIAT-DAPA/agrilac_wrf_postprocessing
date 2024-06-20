@@ -22,5 +22,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#python resampling.py "ETHIOPIA" "D:\\CIAT\\Code\\USAID\\aclimate_resampling\\data\\" "-1" 2 2023

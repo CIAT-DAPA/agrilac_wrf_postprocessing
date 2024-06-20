@@ -95,12 +95,26 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
         print(f"Raster for: {specific_variable} day: {date} created successfully")
 
-        cut_rasters(raster_filename, shp_path)
+        new_raster_filename = cut_rasters(raster_filename, shp_path)
 
-        print(f"Raster for: {specific_variable} day: {date} cut successfully as '{raster_filename}'")
+        print(f"Raster for: {specific_variable} day: {date} cut successfully as '{new_raster_filename}'")
 
-        generate_image(raster_filename, os.path.join(data_path, "ranges.csv"), data_path, os.path.join(shape_path, "limites_municipales_2001", "limite_municipal_2001.shp"))
+        generate_image(new_raster_filename, search_csv(os.path.join(data_path,"ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales_2001", "limite_municipal_2001.shp"))
 
     return var_output
 
 
+
+def search_csv(ranges_path, varname):
+
+    csvs = [os.path.join(ranges_path, file) for file in os.listdir(ranges_path)]
+
+    def contains_keyword(file_name, keyword):
+        return file_name.startswith(keyword)
+
+    filtered_files = [file for file in csvs if contains_keyword(os.path.basename(file), varname)]
+
+    if not filtered_files:
+        filtered_files.append(os.path.join(ranges_path, "ranges_Default.csv"))
+
+    return filtered_files[0]

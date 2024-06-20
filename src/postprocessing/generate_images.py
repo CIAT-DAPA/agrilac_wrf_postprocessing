@@ -5,17 +5,27 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
 import geopandas as gpd
+from datetime import datetime, timedelta
 
 def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     # Definir la ruta del logo y la ruta de guardado del PNG
     logo_path = os.path.join(data_path, "instituteLogo.jpg")
     png_file = os.path.join(os.path.dirname(raster_path), os.path.basename(raster_path).replace(".tif", "_image.png"))
+    
     date = os.path.basename(raster_path).split("_")[1].split(".")[0]
+    date_obj = datetime.strptime(date, "%Y-%m-%d")
+    # Sumar un día
+    new_date_obj = date_obj + timedelta(days=1)
+
+    # Convertir el objeto datetime de nuevo a string
+    new_date_str = new_date_obj.strftime("%Y-%m-%d")
+
+    csv_title = os.path.basename(csv_path).split("_")[1].replace(".csv", "")
 
     # Leer los rangos de colores desde el CSV
     color_ranges = pd.read_csv(csv_path)
 
-    title = f"Precipitación en mm {date}"  # Título que deseas agregar
+    title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"  # Título que deseas agregar
 
     with rasterio.open(raster_path) as src:
         # Leer la primera banda como un arreglo numpy

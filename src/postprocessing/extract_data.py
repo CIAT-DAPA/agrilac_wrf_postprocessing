@@ -4,16 +4,17 @@ import numpy as np
 import rasterio as rio
 from rasterio.transform import from_origin
 from .export_average import export_raster
+from .generate_images import generate_image
 import rasterio
 
 
 def extract_data(inputs_path, outputs_path):
 
     
-    inputs_path = os.path.join(inputs_path, "wrf")
+    wrf_inputs_path = os.path.join(inputs_path, "wrf")
 
     # Filtrar solo los archivos
-    nc_files = [os.path.join(inputs_path, file) for file in os.listdir(inputs_path)]
+    nc_files = [os.path.join(wrf_inputs_path, file) for file in os.listdir(wrf_inputs_path)]
 
     for file in nc_files:
 
@@ -40,11 +41,11 @@ def extract_data(inputs_path, outputs_path):
 
         QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, inputs_path, True)
 
-        WS10m = calcWS10m(U10, V10)
+        WS10m = calcWS10m(U10, V10, inputs_path)
 
-        WS2m = calcWS2m(WS10m)
+        WS2m = calcWS2m(WS10m, inputs_path)
 
-        RH = calcRH(T2, P, PB, QVAPOR)
+        RH = calcRH(T2, P, PB, QVAPOR, inputs_path)
 
         dataset.close()
 
@@ -52,7 +53,7 @@ def extract_data(inputs_path, outputs_path):
 
 
 
-def calcWS10m(U10, V10):
+def calcWS10m(U10, V10, inputs_path):
 
 
     for index in range(0,len(os.listdir(U10))):
@@ -92,10 +93,11 @@ def calcWS10m(U10, V10):
 
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return U10.replace("U10","WS10m")
 
-def calcWS2m(WS10m):
-
+def calcWS2m(WS10m, inputs_path):
 
     for index in range(0,len(os.listdir(WS10m))):
 
@@ -133,10 +135,12 @@ def calcWS2m(WS10m):
 
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return WS10m.replace("WS10m","WS2m")
 
 
-def calcRH(T2, P, PB, Q):
+def calcRH(T2, P, PB, Q, inputs_path):
 
 
     for index in range(0,len(os.listdir(T2))):
@@ -194,4 +198,21 @@ def calcRH(T2, P, PB, Q):
         
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return T2.replace("T2","RH")
+
+
+def search_csv(ranges_path, varname):
+
+    csvs = [os.path.join(ranges_path, file) for file in os.listdir(ranges_path)]
+
+    def contains_keyword(file_name, keyword):
+        return file_name.startswith(keyword)
+
+    filtered_files = [file for file in csvs if contains_keyword(os.path.basename(file), varname)]
+
+    if not filtered_files:
+        filtered_files.append(os.path.join(ranges_path, "ranges_Default.csv"))
+
+    return filtered_files
