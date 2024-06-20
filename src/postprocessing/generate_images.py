@@ -1,7 +1,7 @@
 import rasterio
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
 
@@ -19,22 +19,20 @@ def generate_image(raster_path, csv_path, variable, data_path):
     with rasterio.open(raster_path) as src:
         # Leer la primera banda como un arreglo numpy
         band = src.read(1)
+        raster_bounds = src.bounds
 
-        # Crear el mapa de colores basado en los rangos del CSV
+        # Crear el mapa de colores basado en los rangos del CSV con degradado
         cmap_colors = []
         for index, row in color_ranges.iterrows():
-            min_val = row['min']
-            max_val = row['max']
             color = row['color']
-            cmap_colors.append((min_val, color))
-            cmap_colors.append((max_val, color))
-        cmap = ListedColormap([c for _, c in sorted(cmap_colors)])
+            cmap_colors.append(color)
+        cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
         
         # Configurar la figura de Matplotlib con tamaño personalizado
         fig, ax = plt.subplots(figsize=(12, 8))
 
         # Mostrar el mapa de colores
-        im = ax.imshow(band, cmap=cmap)
+        im = ax.imshow(band, cmap=cmap, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top])
 
         # Añadir título
         ax.set_title(title, fontsize=20)
@@ -43,7 +41,7 @@ def generate_image(raster_path, csv_path, variable, data_path):
         if os.path.exists(logo_path):
             logo = plt.imread(logo_path)
             imagebox = OffsetImage(logo, zoom=0.2)
-            ab = AnnotationBbox(imagebox, (118, 70), frameon=False)  # Coordenadas absolutas (50, 50)
+            ab = AnnotationBbox(imagebox, (0.87, 0.11), frameon=False, xycoords='axes fraction')  # Coordenadas fraccionarias del eje (0.95, 0.05)
             ax.add_artist(ab)
 
         # Añadir barra de colores (colorbar) abajo a la izquierda
@@ -57,8 +55,8 @@ def generate_image(raster_path, csv_path, variable, data_path):
 
     print(f'Imagen procesada guardada en: {png_file}')
 
-
+# Ejemplo de uso
 generate_image('D:\\Code\\Honduras\\Docker\\postprocessing\\outputs\\wrfout_d02_2017-08-15_00 00 00.nc\\HGT\\HGT_2017-08-15.tif', 
-            os.path.join('D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data',"test.csv"),
-                'HGT',
-                'D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data')
+               'D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data\\test.csv',
+               'HGT',
+               'D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data')
