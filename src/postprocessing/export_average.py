@@ -4,6 +4,7 @@ import rasterio
 from rasterio.transform import from_origin
 import os
 from .cut_map import cut_rasters
+from .generate_images import generate_image
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
@@ -12,9 +13,9 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
     # Get the current script directory
     output_path_folder = os.path.join(output_path, file_name)
-    shp_path = os.path.join(inputs_path, "shapefile")
+    shape_path = os.path.join(inputs_path, "shapefile")
     data_path = os.path.join(inputs_path, "data")
-    shp_path = os.path.join(shp_path, "limite_nacional_2011", "limite_nacional_2011.shp")
+    shp_path = os.path.join(shape_path, "limite_nacional_2011", "limite_nacional_2011.shp")
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -97,6 +98,8 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
         cut_rasters(raster_filename, shp_path)
 
         print(f"Raster for: {specific_variable} day: {date} cut successfully as '{raster_filename}'")
+
+        generate_image(raster_filename, os.path.join(data_path, "ranges.csv"), data_path, os.path.join(shape_path, "limites_municipales_2001", "limite_municipal_2001.shp"))
 
     return var_output
 

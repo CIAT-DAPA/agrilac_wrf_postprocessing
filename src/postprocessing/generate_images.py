@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
 import geopandas as gpd
 
-def generate_image(raster_path, csv_path, variable, data_path, shapefile_path=None):
+def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     # Definir la ruta del logo y la ruta de guardado del PNG
     logo_path = os.path.join(data_path, "instituteLogo.jpg")
     png_file = os.path.join(os.path.dirname(raster_path), os.path.basename(raster_path).replace(".tif", "_image.png"))
@@ -64,10 +64,9 @@ def generate_image(raster_path, csv_path, variable, data_path, shapefile_path=No
     print(f'Imagen procesada guardada en: {png_file}')
 
 # Ejemplo de uso
-generate_image(
-    raster_path='D:\\Code\\Honduras\\Docker\\postprocessing\\outputs\\wrfout_d02_2017-08-15_00 00 00.nc\\HGT\\HGT_2017-08-15.tif', 
-    csv_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data\\test.csv',
-    variable='HGT',
-    data_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data',
-    shapefile_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\shapefile\\limites_municipales_2001\\limite_municipal_2001.shp'  # Añade la ruta al shapefile aquí
-)
+# generate_image(
+#     raster_path='D:\\Code\\Honduras\\Docker\\postprocessing\\outputs\\wrfout_d02_2017-08-15_00 00 00.nc\\HGT\\HGT_2017-08-15.tif', 
+#     csv_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data\\test.csv',
+#     data_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data',
+#     shapefile_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\shapefile\\limites_municipales_2001\\limite_municipal_2001.shp'  # Añade la ruta al shapefile aquí
+# )
