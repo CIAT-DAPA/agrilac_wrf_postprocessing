@@ -24,6 +24,13 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
 
     # Leer los rangos de colores desde el CSV
     color_ranges = pd.read_csv(csv_path)
+    min_vals = color_ranges['min'].astype(float).tolist()
+    max_vals = color_ranges['max'].astype(float).tolist()
+    cmap_colors = color_ranges['color'].tolist()
+
+    # Crear los límites y colores para el mapa de colores
+    boundaries = min_vals + [max_vals[-1]]  # El valor máximo final para cerrar el último rango
+    cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
 
     title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"  # Título que deseas agregar
 
@@ -33,13 +40,6 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         raster_bounds = src.bounds
         raster_crs = src.crs
 
-        # Crear el mapa de colores basado en los rangos del CSV con degradado
-        cmap_colors = []
-        for index, row in color_ranges.iterrows():
-            color = row['color']
-            cmap_colors.append(color)
-        cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
-        
         # Configurar la figura de Matplotlib con tamaño personalizado
         fig, ax = plt.subplots(figsize=(12, 8))
 
