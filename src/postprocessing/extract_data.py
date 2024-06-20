@@ -93,7 +93,7 @@ def calcWS10m(U10, V10, inputs_path):
 
         print(f"Raster {file_name} created successfully")
 
-        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges"), "WS10m"), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
 
     return U10.replace("U10","WS10m")
 
@@ -135,7 +135,7 @@ def calcWS2m(WS10m, inputs_path):
 
         print(f"Raster {file_name} created successfully")
 
-        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges"), "WS2m"), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
 
     return WS10m.replace("WS10m","WS2m")
 
@@ -198,7 +198,7 @@ def calcRH(T2, P, PB, Q, inputs_path):
         
         print(f"Raster {file_name} created successfully")
 
-        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges")), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
+        generate_image(file_name, search_csv(os.path.join(os.path.join(inputs_path, "data"), "ranges"), "RH"), os.path.join(inputs_path, "data"), os.path.join(os.path.join(inputs_path, "shapefile"), "limites_municipales_2001", "limite_municipal_2001.shp"))
 
     return T2.replace("T2","RH")
 
