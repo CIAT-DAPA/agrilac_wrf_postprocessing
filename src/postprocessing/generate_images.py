@@ -4,8 +4,9 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
+import geopandas as gpd
 
-def generate_image(raster_path, csv_path, variable, data_path):
+def generate_image(raster_path, csv_path, variable, data_path, shapefile_path=None):
     # Definir la ruta del logo y la ruta de guardado del PNG
     logo_path = os.path.join(data_path, "instituteLogo.jpg")
     png_file = os.path.join(os.path.dirname(raster_path), os.path.basename(raster_path).replace(".tif", "_image.png"))
@@ -20,6 +21,7 @@ def generate_image(raster_path, csv_path, variable, data_path):
         # Leer la primera banda como un arreglo numpy
         band = src.read(1)
         raster_bounds = src.bounds
+        raster_crs = src.crs
 
         # Crear el mapa de colores basado en los rangos del CSV con degradado
         cmap_colors = []
@@ -34,6 +36,12 @@ def generate_image(raster_path, csv_path, variable, data_path):
         # Mostrar el mapa de colores
         im = ax.imshow(band, cmap=cmap, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top])
 
+        # Añadir el shapefile si se proporciona
+        if shapefile_path and os.path.exists(shapefile_path):
+            gdf = gpd.read_file(shapefile_path)
+            gdf = gdf.to_crs(raster_crs)  # Reproyectar al CRS del raster
+            gdf.plot(ax=ax, facecolor='none', edgecolor='black')
+
         # Añadir título
         ax.set_title(title, fontsize=20)
 
@@ -41,7 +49,7 @@ def generate_image(raster_path, csv_path, variable, data_path):
         if os.path.exists(logo_path):
             logo = plt.imread(logo_path)
             imagebox = OffsetImage(logo, zoom=0.2)
-            ab = AnnotationBbox(imagebox, (0.87, 0.11), frameon=False, xycoords='axes fraction')  # Coordenadas fraccionarias del eje (0.95, 0.05)
+            ab = AnnotationBbox(imagebox, (0.87, 0.11), frameon=False, xycoords='axes fraction')  # Coordenadas fraccionarias del eje (0.87, 0.11)
             ax.add_artist(ab)
 
         # Añadir barra de colores (colorbar) abajo a la izquierda
@@ -56,7 +64,10 @@ def generate_image(raster_path, csv_path, variable, data_path):
     print(f'Imagen procesada guardada en: {png_file}')
 
 # Ejemplo de uso
-generate_image('D:\\Code\\Honduras\\Docker\\postprocessing\\outputs\\wrfout_d02_2017-08-15_00 00 00.nc\\HGT\\HGT_2017-08-15.tif', 
-               'D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data\\test.csv',
-               'HGT',
-               'D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data')
+generate_image(
+    raster_path='D:\\Code\\Honduras\\Docker\\postprocessing\\outputs\\wrfout_d02_2017-08-15_00 00 00.nc\\HGT\\HGT_2017-08-15.tif', 
+    csv_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data\\test.csv',
+    variable='HGT',
+    data_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\data',
+    shapefile_path='D:\\Code\\Honduras\\Docker\\postprocessing\\files\\shapefile\\limites_municipales_2001\\limite_municipal_2001.shp'  # Añade la ruta al shapefile aquí
+)
