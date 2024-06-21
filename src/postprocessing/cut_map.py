@@ -49,3 +49,5 @@ def cut_rasters(raster_filename, shp_path):
             dest.write(out_image)
 
     os.remove(raster_filename)
+
+    return raster_filename.replace(os.path.basename(raster_filename), os.path.basename(raster_filename).replace("_raster",""))
