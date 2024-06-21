@@ -60,7 +60,7 @@ wrf_postprocessing -i "/path/to/input/" -o "/path/to/output/"
 ## Example
 
 ```bash
-python wrf_postprocessing.py -i "/home/user/data/WRF_outputs" -o "/home/user/data/processed_outputs"
+wrf_postprocessing -i "/home/user/data/WRF_outputs" -o "/home/user/data/processed_outputs"
 ```
 
 This command processes NetCDF files from /home/user/data/WRF_outputs, converts them into daily raster images, and saves the resulting PNG files in /home/user/data/processed_outputs.
