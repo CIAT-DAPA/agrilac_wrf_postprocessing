@@ -75,7 +75,7 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
 
     # Añadir barra de colores (colorbar) abajo a la izquierda
     cbar = fig.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, aspect=30, fraction=0.02)
-    cbar.set_label('Precipitación en mm', fontsize=12)
+    cbar.set_label(csv_title, fontsize=12)
     cbar.ax.tick_params(labelsize=10)
 
     # Guardar la visualización como un archivo PNG
