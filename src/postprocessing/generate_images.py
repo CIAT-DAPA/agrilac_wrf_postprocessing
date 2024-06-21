@@ -1,7 +1,7 @@
 import rasterio
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import os
 import geopandas as gpd
@@ -32,22 +32,17 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         band = src.read(1)
         raster_bounds = src.bounds
         raster_crs = src.crs
-        #
-        
-        # Obtener los valores mínimo y máximo del raster
-        raster_min = np.nanmin(band)
-        raster_max = np.nanmax(band)
 
 
-    # Filtrar el DataFrame de color para incluir solo los rangos dentro del rango del raster
-    filtered_color_ranges = color_ranges[(color_ranges['min'] <= raster_max) & (color_ranges['max'] >= raster_min)]
-    min_vals = filtered_color_ranges['min'].astype(float).tolist()
-    max_vals = filtered_color_ranges['max'].astype(float).tolist()
-    cmap_colors = filtered_color_ranges['color'].tolist()
+    min_vals = color_ranges['min'].astype(float).tolist()
+    max_vals = color_ranges['max'].astype(float).tolist()
+    cmap_colors = color_ranges['color'].tolist()
 
     # Crear los límites y colores para el mapa de colores
-    boundaries = min_vals + [max_vals[-1]]  # El valor máximo final para cerrar el último rango
+    boundaries = max_vals
+    boundaries.insert(0, min_vals[0])
     cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
+    norm = BoundaryNorm(boundaries, cmap.N)
 
     title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"  # Título que deseas agregar
 
@@ -55,7 +50,7 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     fig, ax = plt.subplots(figsize=(12, 8))
 
     # Mostrar el mapa de colores
-    im = ax.imshow(band, cmap=cmap, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top])
+    im = ax.imshow(band, cmap=cmap, norm=norm, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top])
 
     # Añadir el shapefile si se proporciona
     if shapefile_path and os.path.exists(shapefile_path):
@@ -74,7 +69,7 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         ax.add_artist(ab)
 
     # Añadir barra de colores (colorbar) abajo a la izquierda
-    cbar = fig.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, aspect=30, fraction=0.02)
+    cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=30, fraction=0.02)
     cbar.set_label(csv_title, fontsize=12)
     cbar.ax.tick_params(labelsize=10)
 
