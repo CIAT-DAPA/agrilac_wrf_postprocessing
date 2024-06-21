@@ -4,16 +4,17 @@ import numpy as np
 import rasterio as rio
 from rasterio.transform import from_origin
 from .export_average import export_raster
+from .generate_images import generate_image
 import rasterio
 
 
 def extract_data(inputs_path, outputs_path):
 
-    shp_path = os.path.join(inputs_path, "shapefile")
-    inputs_path = os.path.join(inputs_path, "wrf")
+    
+    wrf_inputs_path = os.path.join(inputs_path, "wrf")
 
     # Filtrar solo los archivos
-    nc_files = [os.path.join(inputs_path, file) for file in os.listdir(inputs_path)]
+    nc_files = [os.path.join(wrf_inputs_path, file) for file in os.listdir(wrf_inputs_path)]
 
     for file in nc_files:
 
@@ -22,29 +23,29 @@ def extract_data(inputs_path, outputs_path):
 
         dataset = nc.Dataset(file)
 
-        T2 = export_raster(dataset, file_name, "T2", outputs_path, shp_path)
+        T2 = export_raster(dataset, file_name, "T2", outputs_path, inputs_path)
 
-        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, shp_path)
+        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, inputs_path)
         
-        HGT = export_raster(dataset, file_name, "HGT", outputs_path, shp_path)
+        HGT = export_raster(dataset, file_name, "HGT", outputs_path, inputs_path)
         
-        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, shp_path)
+        SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, inputs_path)
 
-        U10 = export_raster(dataset, file_name, "U10", outputs_path, shp_path)
+        U10 = export_raster(dataset, file_name, "U10", outputs_path, inputs_path)
         
-        V10 = export_raster(dataset, file_name, "V10", outputs_path, shp_path)
+        V10 = export_raster(dataset, file_name, "V10", outputs_path, inputs_path)
 
-        P = export_raster(dataset, file_name, "P", outputs_path, shp_path, True)
+        P = export_raster(dataset, file_name, "P", outputs_path, inputs_path, True)
 
-        PB = export_raster(dataset, file_name, "PB", outputs_path, shp_path, True)
+        PB = export_raster(dataset, file_name, "PB", outputs_path, inputs_path, True)
 
-        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, shp_path, True)
+        QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, inputs_path, True)
 
-        WS10m = calcWS10m(U10, V10)
+        WS10m = calcWS10m(U10, V10, inputs_path)
 
-        WS2m = calcWS2m(WS10m)
+        WS2m = calcWS2m(WS10m, inputs_path)
 
-        RH = calcRH(T2, P, PB, QVAPOR)
+        RH = calcRH(T2, P, PB, QVAPOR, inputs_path)
 
         dataset.close()
 
@@ -52,18 +53,20 @@ def extract_data(inputs_path, outputs_path):
 
 
 
-def calcWS10m(U10, V10):
+def calcWS10m(U10, V10, inputs_path):
 
+    tif_U10_files = [file for file in os.listdir(U10) if file.endswith('.tif')]
+    tif_V10_files = [file for file in os.listdir(V10) if file.endswith('.tif')]
 
-    for index in range(0,len(os.listdir(U10))):
+    for index in range(0,len(tif_U10_files)):
 
-        with rasterio.open(os.path.join(U10,os.listdir(U10)[index])) as src_u10:
+        with rasterio.open(os.path.join(U10,tif_U10_files[index])) as src_u10:
             u10 = src_u10.read(1)
         
             transform = src_u10.transform
             crs = src_u10.crs
 
-        with rasterio.open(os.path.join(V10,os.listdir(V10)[index])) as src_v10:
+        with rasterio.open(os.path.join(V10,tif_V10_files[index])) as src_v10:
             v10 = src_v10.read(1)
 
         print(f"Calculated WS10m")
@@ -75,7 +78,7 @@ def calcWS10m(U10, V10):
         if not os.path.exists(os.path.join(parent_dir, 'WS10m')):
             os.makedirs(os.path.join(parent_dir, 'WS10m'))
 
-        file_name = os.path.join(U10,os.listdir(U10)[index]).replace("U10","WS10m")
+        file_name = os.path.join(U10,tif_U10_files[index]).replace("U10","WS10m")
 
         with rasterio.open(
             file_name,
@@ -92,14 +95,17 @@ def calcWS10m(U10, V10):
 
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(inputs_path, "data", "ranges"), "WS10m"), os.path.join(inputs_path, "data"), os.path.join(inputs_path, "shapefile", "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return U10.replace("U10","WS10m")
 
-def calcWS2m(WS10m):
+def calcWS2m(WS10m, inputs_path):
 
+    tif_files = [file for file in os.listdir(WS10m) if file.endswith('.tif')]
 
-    for index in range(0,len(os.listdir(WS10m))):
+    for index in range(0,len(tif_files)):
 
-        with rasterio.open(os.path.join(WS10m,os.listdir(WS10m)[index]))  as src_ws10m:
+        with rasterio.open(os.path.join(WS10m,tif_files[index])) as src_ws10m:
             ws10m = src_ws10m.read(1)
         
             transform = src_ws10m.transform
@@ -116,7 +122,7 @@ def calcWS2m(WS10m):
         if not os.path.exists(os.path.join(parent_dir, 'WS2m')):
             os.makedirs(os.path.join(parent_dir, 'WS2m'))
 
-        file_name = os.path.join(WS10m,os.listdir(WS10m)[index]).replace("WS10m","WS2m")
+        file_name = os.path.join(WS10m,tif_files[index]).replace("WS10m","WS2m")
 
         with rasterio.open(
             file_name,
@@ -133,27 +139,33 @@ def calcWS2m(WS10m):
 
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(inputs_path, "data", "ranges"), "WS2m"), os.path.join(inputs_path, "data"), os.path.join(inputs_path, "shapefile", "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return WS10m.replace("WS10m","WS2m")
 
 
-def calcRH(T2, P, PB, Q):
+def calcRH(T2, P, PB, Q, inputs_path):
 
+    tif_T2_files = [file for file in os.listdir(T2) if file.endswith('.tif')]
+    tif_P_files = [file for file in os.listdir(P) if file.endswith('.tif')]
+    tif_PB_files = [file for file in os.listdir(PB) if file.endswith('.tif')]
+    tif_Q_files = [file for file in os.listdir(Q) if file.endswith('.tif')]
 
-    for index in range(0,len(os.listdir(T2))):
+    for index in range(0,len(tif_T2_files)):
 
-        with rasterio.open(os.path.join(T2,os.listdir(T2)[index])) as src_t2:
+        with rasterio.open(os.path.join(T2,tif_T2_files[index])) as src_t2:
             t2 = src_t2.read(1)
         
             transform = src_t2.transform
             crs = src_t2.crs
 
-        with rasterio.open(os.path.join(P,os.listdir(P)[index])) as src_p:
+        with rasterio.open(os.path.join(P,tif_P_files[index])) as src_p:
             p = src_p.read(1)
 
-        with rasterio.open(os.path.join(PB,os.listdir(PB)[index])) as src_pb:
+        with rasterio.open(os.path.join(PB,tif_PB_files[index])) as src_pb:
             pb = src_pb.read(1)
 
-        with rasterio.open(os.path.join(Q,os.listdir(Q)[index])) as src_q:
+        with rasterio.open(os.path.join(Q,tif_Q_files[index])) as src_q:
             q = src_q.read(1)
 
         print(f"Calculated RH")
@@ -177,7 +189,7 @@ def calcRH(T2, P, PB, Q):
         if not os.path.exists(os.path.join(parent_dir, 'RH')):
             os.makedirs(os.path.join(parent_dir, 'RH'))
 
-        file_name = os.path.join(T2,os.listdir(T2)[index]).replace("T2","RH")
+        file_name = os.path.join(T2,tif_T2_files[index]).replace("T2","RH")
 
         with rasterio.open(
             file_name,
@@ -194,4 +206,21 @@ def calcRH(T2, P, PB, Q):
         
         print(f"Raster {file_name} created successfully")
 
+        generate_image(file_name, search_csv(os.path.join(inputs_path, "data", "ranges"), "RH"), os.path.join(inputs_path, "data"), os.path.join(inputs_path, "shapefile", "limites_municipales_2001", "limite_municipal_2001.shp"))
+
     return T2.replace("T2","RH")
+
+
+def search_csv(ranges_path, varname):
+
+    csvs = [os.path.join(ranges_path, file) for file in os.listdir(ranges_path)]
+
+    def contains_keyword(file_name, keyword):
+        return file_name.startswith(keyword)
+
+    filtered_files = [file for file in csvs if contains_keyword(os.path.basename(file), varname)]
+
+    if not filtered_files:
+        filtered_files.append(os.path.join(ranges_path, "ranges_Default.csv"))
+
+    return filtered_files[0]
