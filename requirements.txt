@@ -29,3 +29,5 @@ snuggs==1.4.7
 tzdata==2024.1
 matplotlib==3.9.0
 matplotlib-inline==0.1.7
+asttokens==2.4.1
+secure-smtplib==0.1.1
