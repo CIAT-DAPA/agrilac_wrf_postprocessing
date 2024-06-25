@@ -15,7 +15,7 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
     output_path_folder = os.path.join(output_path, file_name)
     shape_path = os.path.join(inputs_path, "shapefile")
     data_path = os.path.join(inputs_path, "data")
-    shp_path = os.path.join(shape_path, "limite_nacional_2011", "limite_nacional_2011.shp")
+    shp_path = os.path.join(shape_path, "limite_nacional", "limite_nacional.shp")
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -99,7 +99,7 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
         print(f"Raster for: {specific_variable} day: {date} cut successfully as '{new_raster_filename}'")
 
-        generate_image(new_raster_filename, search_csv(os.path.join(data_path,"ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales_2001", "limite_municipal_2001.shp"))
+        generate_image(new_raster_filename, search_csv(os.path.join(data_path,"ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales", "limite_municipal.shp"))
 
     return var_output
 
