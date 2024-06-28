@@ -2,10 +2,12 @@ import os
 import netCDF4 as nc
 import numpy as np
 import rasterio as rio
-from rasterio.transform import from_origin
+from rasterio.transform import from_origin, xy
 from .export_average import export_raster
 from .generate_images import generate_image
 import rasterio
+import math
+from datetime import datetime, timedelta
 
 
 def extract_data(inputs_path, outputs_path):
@@ -41,11 +43,15 @@ def extract_data(inputs_path, outputs_path):
 
         QVAPOR = export_raster(dataset, file_name, "QVAPOR", outputs_path, inputs_path, True)
 
+        SMOIS = export_raster(dataset, file_name, "SMOIS", outputs_path, inputs_path, True)
+
         WS10m = calcWS10m(U10, V10, inputs_path)
 
         WS2m = calcWS2m(WS10m, inputs_path)
 
         RH = calcRH(T2, P, PB, QVAPOR, inputs_path)
+
+        ET0 = calcET0(T2, RH, WS2m, SWDOWN, inputs_path)
 
         dataset.close()
 
@@ -174,10 +180,10 @@ def calcRH(T2, P, PB, Q, inputs_path):
         Ptot = p + pb
 
         # Calcula la temperatura en grados Celsius (TC)
-        TC = t2 - 273.15
+        TC = t2
 
         # Calcula la presión de vapor de agua (es)
-        es = 6.1094 * np.exp(17.625) * (TC / (TC + 243.04))
+        es = 6.1094 * np.exp((17.625 * TC) / (TC + 243.04))
 
         wr = 0.622 * (es / (Ptot / 100 - es))
 
@@ -209,6 +215,119 @@ def calcRH(T2, P, PB, Q, inputs_path):
         generate_image(file_name, search_csv(os.path.join(inputs_path, "data", "ranges"), "RH"), os.path.join(inputs_path, "data"), os.path.join(inputs_path, "shapefile", "limites_municipales", "limite_municipal.shp"))
 
     return T2.replace("T2","RH")
+
+
+def calcET0(T2, RH, WS2m, SWDOWN, inputs_path):
+
+    pressure = 101.325
+
+    dates_list = []
+    doy_list = []
+    yesterday = datetime.now() - timedelta(days=1)
+    ndays = 10
+    for i in range(ndays):
+        date = yesterday - timedelta(days=i)
+        year = date.strftime('%Y')
+        doy = date.strftime('%j')
+        date_str = year + doy
+        dates_list.append(date_str)
+        doy_list.append(int(doy))
+
+    tif_T2_files = [file for file in os.listdir(T2) if file.endswith('.tif')]
+    tif_RH_files = [file for file in os.listdir(RH) if file.endswith('.tif')]
+    tif_WS2m_files = [file for file in os.listdir(WS2m) if file.endswith('.tif')]
+    tif_SWDOWN_files = [file for file in os.listdir(SWDOWN) if file.endswith('.tif')]
+
+    count = -1
+
+    for index in range(0,len(tif_T2_files)):
+
+        count = count + 1
+        doy = doy_list[count]
+
+        with rasterio.open(os.path.join(T2,tif_T2_files[index])) as src_t2:
+            t2 = src_t2.read(1)
+        
+            transform = src_t2.transform
+            crs = src_t2.crs
+
+        rows, cols = t2.shape
+        ET0 = np.empty((rows, cols))
+        ET0[:] = np.nan
+
+        with rasterio.open(os.path.join(RH,tif_RH_files[index])) as src_rh:
+            rh = src_rh.read(1)
+        with rasterio.open(os.path.join(SWDOWN,tif_SWDOWN_files[index])) as src_swdown:
+            swdown = src_swdown.read(1)
+        with rasterio.open(os.path.join(WS2m,tif_WS2m_files[index])) as src_ws2m:
+            ws2m = src_ws2m.read(1)
+
+
+        for i in range(rows):
+        
+            for j in range(cols):
+
+                lon, latitude = xy(transform, i, j)
+                   
+                mytas = t2[i,j]
+                myrh = rh[i,j]
+                myws = ws2m[i,j]
+                mysr = swdown[i,j]#*0.0864  W/m2 to MJ/m2/d
+                
+                # PRESION DE VAPOR A SATURACION Y ACTUAL
+                es = 0.6108 * math.exp(17.27 * mytas / (mytas + 237.3))
+                ea = (myrh / 100) * es
+                
+                # PENDIENTE DE LA CURVA DE PRESION DE VAPOR Y CONSTANTE PSICROMETRICA
+                delta = 4098 * es / (mytas + 237.3) ** 2
+                gamma = 0.665 * 10 ** (-3) * pressure / 0.622
+                
+                                
+                # RADIACION SOLAR DE DIA DESPEJADO Y RADIACION EXTRATERRESTRE
+                dr = 1 + 0.033 * math.cos(2 * math.pi / 365 * doy)
+                delta_s = 0.409 * math.sin(2 * math.pi / 365 * doy - 1.39)
+                omega_s = math.acos(-math.tan(latitude * math.pi / 180) * math.tan(delta_s))
+                Ra = (24 * 60 / math.pi) * 0.082 * dr * (omega_s * math.sin(latitude * math.pi / 180) * math.sin(delta_s) + math.cos(latitude * math.pi / 180) * math.cos(delta_s) * math.sin(omega_s))
+                
+                # RADIACION SOLAR NETA Y RADIACION NETA DE ONDA LARGA EMERGENTE
+                Rns = 0.77 * mysr
+                Rnl = 4.903 * 10 ** (-9) * ((mytas + 273.16) ** 4) * (0.34 - 0.14 * math.sqrt(ea)) * (1.35 * (mysr / Ra) - 0.35)
+                
+                Rn = Rns - Rnl
+                G = 0 # A ESCALA DIARIA = 0
+                
+                # ET0
+                calculatedET0 = (0.408 * delta * (Rn - G) + gamma * (900 / (mytas + 273)) * myws * (es - ea)) / (delta + gamma * (1 + 0.34 * myws))
+
+                ET0[i][j] = calculatedET0
+
+        print(f"Calculated ET0")
+
+        parent_dir = os.path.dirname(T2)
+
+        if not os.path.exists(os.path.join(parent_dir, 'ET0')):
+            os.makedirs(os.path.join(parent_dir, 'ET0'))
+
+        file_name = os.path.join(T2,tif_T2_files[index]).replace("T2","ET0")
+
+        with rasterio.open(
+            file_name,
+            'w',
+            driver='GTiff',
+            height=ET0.shape[0],
+            width=ET0.shape[1],
+            count=1,
+            dtype=ET0.dtype,
+            crs=crs,
+            transform=transform,
+        ) as dst:
+            dst.write(ET0, 1)
+
+        print(f"Raster {file_name} created successfully")
+
+        generate_image(file_name, search_csv(os.path.join(inputs_path, "data", "ranges"), "ET0"), os.path.join(inputs_path, "data"), os.path.join(inputs_path, "shapefile", "limites_municipales", "limite_municipal.shp"))
+
+    return T2.replace("T2","ET0")
 
 
 def search_csv(ranges_path, varname):
