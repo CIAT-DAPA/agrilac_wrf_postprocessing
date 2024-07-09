@@ -27,7 +27,7 @@ def extract_data(inputs_path, outputs_path):
 
         T2 = export_raster(dataset, file_name, "T2", outputs_path, inputs_path)
 
-        RAINNC = export_raster(dataset, file_name, "RAINNC", outputs_path, inputs_path)
+        RAIN = export_raster(dataset, file_name, "RAIN", outputs_path, inputs_path)
         
         HGT = export_raster(dataset, file_name, "HGT", outputs_path, inputs_path)
         
