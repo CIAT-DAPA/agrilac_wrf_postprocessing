@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 
 
 def export_raster(dataset, file_name, specific_variable, output_path, inputs_path, is4Dim=False):
-
     # Get the current script directory
     output_path_folder = os.path.join(output_path, file_name)
     shape_path = os.path.join(inputs_path, "shapefile")
@@ -23,19 +22,24 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
     if not os.path.exists(output_path_folder):
         os.makedirs(output_path_folder)
 
-
-    # Check if the specific variable is in the file
-    if specific_variable not in dataset.variables:
-        raise ValueError(f"The variable '{specific_variable}' is not found in the NetCDF file.")
-
     var_output = os.path.join(output_path_folder, specific_variable)
 
     if not os.path.exists(var_output):
         os.makedirs(var_output)
 
     # Extract variables
-    var_data = dataset.variables[specific_variable][:]
-
+    if specific_variable == "RAIN":
+        if "RAINNC" not in dataset.variables or "RAINC" not in dataset.variables or "RAINSH" not in dataset.variables:
+            raise ValueError(f"The variables 'RAINNC', 'RAINC' or 'RAINSH' are not found in the NetCDF file.")
+        rainnc_data = dataset.variables["RAINNC"][:]
+        rainc_data = dataset.variables["RAINC"][:]
+        rainsh_data = dataset.variables["RAINSH"][:]
+        var_data = rainnc_data + rainc_data + rainsh_data
+    else:
+        if specific_variable not in dataset.variables:
+            raise ValueError(f"The variable '{specific_variable}' is not found in the NetCDF file.")
+        var_data = dataset.variables[specific_variable][:]
+    
     # Check dimensions
     print(f"Dimensions of {specific_variable}: {var_data.shape}")
 
@@ -68,13 +72,22 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
         start_datetime = datetime.strptime(start_date_str, '%Y-%m-%d_%H:%M:%S')
 
         date = start_datetime + timedelta(minutes=int(xtime[start_index]))
-
         date = date.strftime('%Y-%m-%d')
 
         daily_data = var_data[start_index:end_index, :, :]
 
         # Calculate the accumulated sum or mean of the daily data
-        result_variable = np.sum(daily_data, axis=0) if specific_variable == "RAINNC" else np.mean(daily_data, axis=0)
+        if specific_variable == "RAIN":
+            # Initialize the previous total for 3-hour difference calculation
+            previous_total = np.zeros(daily_data.shape[1:])
+            result_variable = np.zeros(daily_data.shape[1:])
+            for i in range(daily_data.shape[0]):
+                current_total = daily_data[i, :, :]
+                # Calculate the 3-hourly accumulated precipitation
+                result_variable += current_total - previous_total
+                previous_total = current_total
+        else:
+            result_variable = np.mean(daily_data, axis=0)
 
         # Create a unique name for the raster file
         raster_filename = os.path.join(var_output, f'{specific_variable}_{date}_raster.tif')
@@ -99,14 +112,12 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
         print(f"Raster for: {specific_variable} day: {date} cut successfully as '{new_raster_filename}'")
 
-        generate_image(new_raster_filename, search_csv(os.path.join(data_path,"ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales", "limite_municipal.shp"))
+        generate_image(new_raster_filename, search_csv(os.path.join(data_path, "ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales", "limite_municipal.shp"))
 
     return var_output
 
 
-
 def search_csv(ranges_path, varname):
-
     csvs = [os.path.join(ranges_path, file) for file in os.listdir(ranges_path)]
 
     def contains_keyword(file_name, keyword):
