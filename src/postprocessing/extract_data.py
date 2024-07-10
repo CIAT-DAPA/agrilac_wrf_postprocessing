@@ -272,7 +272,7 @@ def calcET0(T2, RH, WS2m, SWDOWN, inputs_path):
                 mytas = t2[i,j]
                 myrh = rh[i,j]
                 myws = ws2m[i,j]
-                mysr = swdown[i,j]#*0.0864  W/m2 to MJ/m2/d
+                mysr = swdown[i,j]*0.0864  #W/m2 to MJ/m2/d
                 
                 # PRESION DE VAPOR A SATURACION Y ACTUAL
                 es = 0.6108 * math.exp(17.27 * mytas / (mytas + 237.3))
