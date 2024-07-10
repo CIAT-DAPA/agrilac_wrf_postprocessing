@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="agrilac_wrf_postprocessing",
-    version='v0.0.16',
+    version='v0.0.17',
     author="stevensotelo",
     author_email="h.sotelo@cgiar.com",
     description="Postprocessing wrf outputs",
