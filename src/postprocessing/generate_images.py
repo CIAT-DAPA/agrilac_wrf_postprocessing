@@ -8,7 +8,6 @@ import geopandas as gpd
 from datetime import datetime, timedelta
 import numpy as np
 
-
 def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     # Definir la ruta del logo y la ruta de guardado del PNG
     logo_path = os.path.join(data_path, "instituteLogo.jpg")
@@ -16,27 +15,28 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     
     date = os.path.basename(raster_path).split("_")[1].split(".")[0]
     date_obj = datetime.strptime(date, "%Y-%m-%d")
-    # Sumar un día
     new_date_obj = date_obj + timedelta(days=1)
-
-    # Convertir el objeto datetime de nuevo a string
     new_date_str = new_date_obj.strftime("%Y-%m-%d")
-
     csv_title = os.path.basename(csv_path).split("_")[1].replace(".csv", "")
 
     # Leer los rangos de colores desde el CSV
     color_ranges = pd.read_csv(csv_path)
     
     with rasterio.open(raster_path) as src:
-        # Leer la primera banda como un arreglo numpy
         band = src.read(1)
         raster_bounds = src.bounds
         raster_crs = src.crs
 
+    if 'season' in color_ranges.columns:
+        current_date = datetime.now()
+        current_season = determine_season(current_date)
+        filtered_ranges = color_ranges[color_ranges['season'] == current_season]
+    else:
+        filtered_ranges = color_ranges
 
-    min_vals = color_ranges['min'].astype(float).tolist()
-    max_vals = color_ranges['max'].astype(float).tolist()
-    cmap_colors = color_ranges['color'].tolist()
+    min_vals = filtered_ranges['min'].astype(float).tolist()
+    max_vals = filtered_ranges['max'].astype(float).tolist()
+    cmap_colors = filtered_ranges['color'].tolist()
 
     # Crear los límites y colores para el mapa de colores
     boundaries = max_vals
@@ -44,13 +44,15 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
     norm = BoundaryNorm(boundaries, cmap.N)
 
-    title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"  # Título que deseas agregar
+    title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"
 
     # Configurar la figura de Matplotlib con tamaño personalizado
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(14, 10))
 
+    alpha = 0.8
+    interpolation = 'nearest'
     # Mostrar el mapa de colores
-    im = ax.imshow(band, cmap=cmap, norm=norm, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top])
+    im = ax.imshow(band, cmap=cmap, norm=norm, extent=[raster_bounds.left, raster_bounds.right, raster_bounds.bottom, raster_bounds.top], alpha=alpha, interpolation=interpolation)
 
     # Añadir el shapefile si se proporciona
     if shapefile_path and os.path.exists(shapefile_path):
@@ -59,22 +61,42 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         gdf.plot(ax=ax, facecolor='none', edgecolor='black')
 
     # Añadir título
-    ax.set_title(title, fontsize=20)
+    ax.set_title(title, fontsize=18)
+
+    # Añadir etiquetas a los ejes
+    ax.set_xlabel('Longitud', fontsize=12)
+    ax.set_ylabel('Latitud', fontsize=12)
 
     # Añadir logo en posición absoluta
     if os.path.exists(logo_path):
         logo = plt.imread(logo_path)
-        imagebox = OffsetImage(logo, zoom=0.2)
-        ab = AnnotationBbox(imagebox, (0.87, 0.11), frameon=False, xycoords='axes fraction')  # Coordenadas fraccionarias del eje (0.87, 0.11)
+        imagebox = OffsetImage(logo, zoom=0.15)
+        ab = AnnotationBbox(imagebox, (0.85, 0.1), frameon=False, xycoords='axes fraction')
         ax.add_artist(ab)
 
     # Añadir barra de colores (colorbar) abajo a la izquierda
     cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=30, fraction=0.02)
     cbar.set_label(csv_title, fontsize=12)
     cbar.ax.tick_params(labelsize=10)
+    cbar.ax.set_xticklabels([str(int(b)) for b in boundaries])
 
     # Guardar la visualización como un archivo PNG
-    plt.savefig(png_file, bbox_inches='tight')
+    plt.savefig(png_file, bbox_inches='tight', dpi=300)
     plt.close()  # Cerrar la figura para liberar recursos de memoria
 
     print(f'Imagen procesada guardada en: {png_file}')
+
+def determine_season(date):
+    # Definir los rangos de fechas para cada temporada
+    season1_start = datetime(date.year, 1, 1)
+    season1_end = datetime(date.year, 6, 30)
+    season2_start = datetime(date.year, 7, 1)
+    season2_end = datetime(date.year, 12, 31)
+    
+    # Determinar la temporada basada en la fecha
+    if season1_start <= date <= season1_end:
+        return 1
+    elif season2_start <= date <= season2_end:
+        return 2
+    else:
+        return None
