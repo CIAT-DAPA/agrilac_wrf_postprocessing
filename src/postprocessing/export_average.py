@@ -63,6 +63,7 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
     xtime = dataset.variables['XTIME'][:]
 
+    previous_day = np.zeros(var_data.shape[1:])
     # Iterate over each day (8 intervals per day)
     for day in range(var_data.shape[0] // 8):
         start_index = day * 8
@@ -82,13 +83,13 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
             previous_total = np.zeros(daily_data.shape[1:])
             result_variable = np.zeros(daily_data.shape[1:])
             for i in range(daily_data.shape[0]):
-                current_total = daily_data[i, :, :]
+                current_total = daily_data[i, :, :] - previous_day
                 # Calculate the 3-hourly accumulated precipitation
                 result_variable += current_total - previous_total
                 previous_total = current_total
         else:
             result_variable = np.mean(daily_data, axis=0)
-
+        previous_day += result_variable
         # Create a unique name for the raster file
         raster_filename = os.path.join(var_output, f'{specific_variable}_{date}_raster.tif')
 
