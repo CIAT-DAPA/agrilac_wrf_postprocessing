@@ -44,7 +44,7 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
     norm = BoundaryNorm(boundaries, cmap.N)
 
-    title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"
+    title = f"CENAOS/WRF {csv_title}\ndesde {date} hasta {new_date_str}"
 
     # Configurar la figura de Matplotlib con tamaño personalizado
     fig, ax = plt.subplots(figsize=(14, 10))
@@ -75,10 +75,10 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         ax.add_artist(ab)
 
     # Añadir barra de colores (colorbar) abajo a la izquierda
-    cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=30, fraction=0.02)
+    cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=25, shrink=0.75, fraction=0.05)
     cbar.set_label(csv_title, fontsize=12)
-    cbar.ax.tick_params(labelsize=10)
-    cbar.ax.set_xticklabels([str(int(b)) for b in boundaries])
+    cbar.ax.tick_params(labelsize=10, length=5)  # Ajusta el tamaño de las etiquetas y los ticks
+    cbar.ax.set_xticklabels([str(int(b)) for b in boundaries], rotation=45, ha='right')  # Rota las etiquetas si es necesario
 
     # Guardar la visualización como un archivo PNG
     plt.savefig(png_file, bbox_inches='tight', dpi=300)
