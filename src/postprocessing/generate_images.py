@@ -44,7 +44,7 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
     cmap = LinearSegmentedColormap.from_list('custom_cmap', cmap_colors)
     norm = BoundaryNorm(boundaries, cmap.N)
 
-    title = f"CENAOS/WRF {csv_title} desde {date} hasta {new_date_str}"
+    title = f"CENAOS/WRF {csv_title}\ndesde {date} hasta {new_date_str}"
 
     # Configurar la figura de Matplotlib con tamaño personalizado
     fig, ax = plt.subplots(figsize=(14, 10))
