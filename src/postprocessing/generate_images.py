@@ -75,10 +75,10 @@ def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
         ax.add_artist(ab)
 
     # Añadir barra de colores (colorbar) abajo a la izquierda
-    cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=30, fraction=0.02)
+    cbar = fig.colorbar(im, ticks=boundaries, orientation='horizontal', boundaries=boundaries, pad=0.1, aspect=25, shrink=0.75, fraction=0.05)
     cbar.set_label(csv_title, fontsize=12)
-    cbar.ax.tick_params(labelsize=10)
-    cbar.ax.set_xticklabels([str(int(b)) for b in boundaries])
+    cbar.ax.tick_params(labelsize=10, length=5)  # Ajusta el tamaño de las etiquetas y los ticks
+    cbar.ax.set_xticklabels([str(int(b)) for b in boundaries], rotation=45, ha='right')  # Rota las etiquetas si es necesario
 
     # Guardar la visualización como un archivo PNG
     plt.savefig(png_file, bbox_inches='tight', dpi=300)
