@@ -87,6 +87,8 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
                 # Calculate the 3-hourly accumulated precipitation
                 result_variable += current_total - previous_total
                 previous_total = current_total
+            if day == 0 or day == 1:
+                result_variable = result_variable * 0.6
         else:
             result_variable = np.mean(daily_data, axis=0)
         previous_day += result_variable
