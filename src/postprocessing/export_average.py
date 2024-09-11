@@ -111,11 +111,22 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
         print(f"Raster for: {specific_variable} day: {date} created successfully")
 
-        new_raster_filename = cut_rasters(raster_filename, shp_path)
+
+        new_raster_filename = raster_filename.replace(os.path.basename(raster_filename), os.path.basename(raster_filename).replace("_raster",""))
+
+        shape_cut_path = os.path.join(shape_path, "limites_municipales", "limite_municipal.shp")
+
+        if "d02" in file_name:
+
+            new_raster_filename = cut_rasters(raster_filename, shp_path)
+        else:
+            os.rename(raster_filename, new_raster_filename)
+            shape_cut_path = os.path.join(shape_path, "limite_caribe", "limite_caribe.shp")
+
 
         print(f"Raster for: {specific_variable} day: {date} cut successfully as '{new_raster_filename}'")
 
-        generate_image(new_raster_filename, search_csv(os.path.join(data_path, "ranges"), specific_variable), data_path, os.path.join(shape_path, "limites_municipales", "limite_municipal.shp"))
+        generate_image(new_raster_filename, search_csv(os.path.join(data_path, "ranges"), specific_variable), data_path, shape_cut_path)
 
     return var_output
 
