@@ -30,10 +30,13 @@ def cut_rasters(raster_filename, shp_path):
         if src.nodata is not None:
             nodata = src.nodata
             out_image[out_image == nodata] = np.nan
-        zero_mask = (out_image == 0)
-        if np.any(zero_mask):
-            print("Hay valores cero en los datos recortados. Reemplazando con np.nan.")
-            out_image[zero_mask] = np.nan
+
+        # Manejo de valores no válidos
+        invalid_value = -9999
+        invalid_mask = (out_image == invalid_value)
+        if np.any(invalid_mask):
+            print("Hay valores -9999 en los datos recortados. Reemplazando con np.nan.")
+            out_image[invalid_mask] = np.nan
         out_meta = src.meta.copy()
 
         # Actualizar los metadatos del raster recortado
