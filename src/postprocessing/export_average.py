@@ -1,13 +1,18 @@
 import netCDF4 as nc
 import numpy as np
 import rasterio
+import xarray as xr
+import rioxarray
+import geopandas as gpd
+from shapely.geometry import mapping
 from rasterio.transform import from_origin
 import os
 from .cut_map import cut_rasters
 from .generate_images import generate_image
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-
+import pandas as pd
+import matplotlib
 
 def export_raster(dataset, file_name, specific_variable, output_path, inputs_path, is4Dim=False):
     # Get the current script directory
@@ -29,41 +34,49 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
 
     # Extract variables
     if specific_variable == "RAIN":
-        if "RAINNC" not in dataset.variables or "RAINC" not in dataset.variables or "RAINSH" not in dataset.variables:
+        if "RAINNC" not in dataset.data_vars or "RAINC" not in dataset.data_vars or "RAINSH" not in dataset.data_vars:
             raise ValueError(f"The variables 'RAINNC', 'RAINC' or 'RAINSH' are not found in the NetCDF file.")
-        rainnc_data = dataset.variables["RAINNC"][:]
-        rainc_data = dataset.variables["RAINC"][:]
-        rainsh_data = dataset.variables["RAINSH"][:]
+        rainnc_data = dataset.RAINNC
+        rainc_data = dataset.RAINC
+        rainsh_data = dataset.RAINSH
         var_data = rainnc_data + rainc_data + rainsh_data
     else:
-        if specific_variable not in dataset.variables:
+        if specific_variable not in dataset.data_vars:
             raise ValueError(f"The variable '{specific_variable}' is not found in the NetCDF file.")
-        var_data = dataset.variables[specific_variable][:]
+        var_data = dataset[specific_variable][:]
     
+    var_data.rio.write_crs("EPSG:4326")
+
     # Check dimensions
     print(f"Dimensions of {specific_variable}: {var_data.shape}")
 
     if is4Dim:
-        var_data = var_data[:, 0, :, :]
+        if  "bottom_top" in var_data.dims:
+            var_data = var_data.isel(bottom_top=0)
+        elif "soil_layers_stag" in var_data.dims:
+            var_data = var_data.isel(soil_layers_stag=0)
 
-    # Assume dimensions are [time, lat, lon]
-    time_index = 0  # Select a time index for coordinates
 
-    lat = dataset.variables['XLAT'][time_index, :, 0]  # Assuming XLAT is 3D [time, lat, lon]
-    lon = dataset.variables['XLONG'][time_index, 0, :]  # Assuming XLONG is 3D [time, lat, lon]
+    lat = pd.to_numeric(dataset.XLAT.isel(Time=0, west_east=0).values)
+    long = pd.to_numeric(dataset.XLONG.isel(Time=0, south_north=0).values)
 
-    inv_lat = np.flip(lat, axis=0)
+    #inv_lat = np.flip(lat, axis=0)
 
-    res_lat = abs(inv_lat[1] - inv_lat[0])
-    res_lon = abs(lon[1] - lon[0])
-    transform = from_origin(lon.min(), inv_lat.max(), res_lon, res_lat)
 
     if specific_variable == "T2":
-        var_data = var_data - 273
+        var_data.values = var_data.values - 273
 
-    xtime = dataset.variables['XTIME'][:]
+    xtime = dataset.XTIME
 
     previous_day = np.zeros(var_data.shape[1:])
+
+    if "d01" in file_name:
+        shp_path = os.path.join(shape_path, "limite_caribe", "limite_caribe.shp")
+
+    shapefile = gpd.read_file(shp_path)
+
+    shapefile = shapefile.to_crs("EPSG:4326")
+
     # Iterate over each day (8 intervals per day)
     for day in range(var_data.shape[0] // 8):
         start_index = day * 8
@@ -75,7 +88,9 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
         date = start_datetime + timedelta(minutes=int(xtime[start_index]))
         date = date.strftime('%Y-%m-%d')
 
-        daily_data = var_data[start_index:end_index, :, :]
+        daily_data = var_data.isel(Time=slice(start_index, end_index))
+
+        data = daily_data
 
         # Calculate the accumulated sum or mean of the daily data
         if specific_variable == "RAIN":
@@ -83,50 +98,49 @@ def export_raster(dataset, file_name, specific_variable, output_path, inputs_pat
             previous_total = np.zeros(daily_data.shape[1:])
             result_variable = np.zeros(daily_data.shape[1:])
             for i in range(daily_data.shape[0]):
-                current_total = daily_data[i, :, :] - previous_day
+                current_total = daily_data.isel(Time=i) - previous_day
                 # Calculate the 3-hourly accumulated precipitation
                 result_variable += current_total - previous_total
                 previous_total = current_total
             if day == 0 or day == 1:
                 result_variable = result_variable * 0.6
-        else:
-            result_variable = np.mean(daily_data, axis=0)
-        previous_day += result_variable
-        # Create a unique name for the raster file
-        raster_filename = os.path.join(var_output, f'{specific_variable}_{date}_raster.tif')
+            
+            result_variable_expanded = np.expand_dims(result_variable, axis=0)  # (1, y, x)
 
-        # Create the raster file with the accumulated sum or the mean as a single band
-        with rasterio.open(
-                raster_filename,
-                'w',
-                driver='GTiff',
-                height=result_variable.shape[0],
-                width=result_variable.shape[1],
-                count=1,  # Only one band for the accumulated sum or the mean
-                dtype=result_variable.dtype,
-                crs='+proj=latlong',
-                transform=transform,
-        ) as dst:
-            dst.write(result_variable, 1)
+            # Replicate across the Time dimension to match data's shape (Time, y, x)
+            result_variable_expanded = np.repeat(result_variable_expanded, daily_data.shape[0], axis=0)
+
+            # Assign to data with matching dimensions
+            data.values = result_variable_expanded
+            previous_day += result_variable
+
+        else:
+            
+            mean = np.mean(daily_data.values, axis=0)
+            mean_expanded = np.expand_dims(mean, axis=0)
+            mean_expanded = np.repeat(mean_expanded, daily_data.shape[0], axis=0)
+            data.values = mean_expanded
+            
+        # Create a unique name for the raster file
+        raster_filename = os.path.join(var_output, f'{specific_variable}_{date}.tif')
+        time = list(range(start_index, end_index))
+        data_xarray =xr.DataArray(data.values, dims=['t','y','x'], coords={'t': time,'y': lat,'x': long})
+        
+        data_result = data_xarray.rio.write_crs("EPSG:4326").rio.clip(shapefile.geometry, shapefile.crs)
+        
+        data_result = data_result.isel(t=0)
+
+        save_raster(data_result, raster_filename)
 
         print(f"Raster for: {specific_variable} day: {date} created successfully")
 
 
-        new_raster_filename = raster_filename.replace(os.path.basename(raster_filename), os.path.basename(raster_filename).replace("_raster",""))
-
         shape_cut_path = os.path.join(shape_path, "limites_municipales", "limite_municipal.shp")
 
-        if "d02" in file_name:
-
-            new_raster_filename = cut_rasters(raster_filename, shp_path)
-        else:
-            os.rename(raster_filename, new_raster_filename)
+        if "d01" in file_name:
             shape_cut_path = os.path.join(shape_path, "limite_caribe", "limite_caribe.shp")
 
-
-        print(f"Raster for: {specific_variable} day: {date} cut successfully as '{new_raster_filename}'")
-
-        generate_image(new_raster_filename, search_csv(os.path.join(data_path, "ranges"), specific_variable), data_path, shape_cut_path)
+        generate_image(raster_filename, search_csv(os.path.join(data_path, "ranges"), specific_variable), data_path, shape_cut_path)
 
     return var_output
 
@@ -143,3 +157,31 @@ def search_csv(ranges_path, varname):
         filtered_files.append(os.path.join(ranges_path, "ranges_Default.csv"))
 
     return filtered_files[0]
+
+
+def save_raster(data_array, output_path):
+    if isinstance(data_array, xr.Dataset):
+        # Asumiendo que necesitas un DataArray específico dentro del Dataset
+        data_array = data_array.to_array().isel(variable=0)  # Modifica según sea necesario para obtener el DataArray correcto
+
+    lon = data_array.coords['x']
+    lat = data_array.coords['y']
+
+    # Voltear el array de datos a lo largo del eje de latitud
+    flipped_data = np.flip(data_array.values, axis=0)
+    
+    transform = from_origin(west=lon.min().item(), north=lat.max().item(), xsize=(lon.max().item()-lon.min().item())/len(lon), ysize=(lat.max().item()-lat.min().item())/len(lat))
+
+    # Guardar como un archivo raster
+    with rasterio.open(
+        output_path,
+        'w',
+        driver='GTiff',
+        height=flipped_data.shape[0],
+        width=flipped_data.shape[1],
+        count=1,
+        dtype=flipped_data.dtype,
+        crs='+proj=latlong',
+        transform=transform,
+    ) as dst:
+        dst.write(flipped_data, 1)

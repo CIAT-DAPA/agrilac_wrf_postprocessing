@@ -13,7 +13,8 @@ def cut_rasters(raster_filename, shp_path):
 
 
     # Convertir el shapefile a una lista de geometrías
-    shapes = [feature["geometry"] for feature in shapefile.__geo_interface__["features"]]
+    #shapes = [feature["geometry"] for feature in shapefile.__geo_interface__["features"]]
+    
 
     # Abrir el raster
     with rasterio.open(raster_filename) as src:
@@ -21,12 +22,17 @@ def cut_rasters(raster_filename, shp_path):
 
         if shapefile.crs != src.crs:
             shapefile = shapefile.to_crs(src.crs)
+
+        geometries = shapefile.geometry.values
         
         # Convertir el shapefile a una lista de geometrías
-        shapes = [mapping(geom) for geom in shapefile.geometry]
+        #shapes = [mapping(geom) for geom in shapefile.geometry]
 
         # Recortar el raster con el shapefile
-        out_image, out_transform = mask(src, shapes, crop=True)
+        out_image, out_transform = mask(src, geometries, crop=True)
+
+        #out_image[out_image == 0] = np.nan 
+
         if src.nodata is not None:
             nodata = src.nodata
             out_image[out_image == nodata] = np.nan
