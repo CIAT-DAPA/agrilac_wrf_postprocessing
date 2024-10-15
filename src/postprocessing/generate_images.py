@@ -1,4 +1,5 @@
 import rasterio
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
@@ -9,6 +10,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 def generate_image(raster_path, csv_path, data_path, shapefile_path=None):
+    matplotlib.use('Agg')
     # Definir la ruta del logo y la ruta de guardado del PNG
     logo_path = os.path.join(data_path, "instituteLogo.jpg")
     png_file = os.path.join(os.path.dirname(raster_path), os.path.basename(raster_path).replace(".tif", "_image.png"))

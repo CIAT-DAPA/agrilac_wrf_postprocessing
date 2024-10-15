@@ -3,6 +3,7 @@ import netCDF4 as nc
 import numpy as np
 import rasterio as rio
 from rasterio.transform import from_origin, xy
+import xarray as xr
 from .export_average import export_raster
 from .generate_images import generate_image
 import rasterio
@@ -18,17 +19,18 @@ def extract_data(inputs_path, outputs_path):
     # Filtrar solo los archivos
     nc_files = [os.path.join(wrf_inputs_path, file) for file in os.listdir(wrf_inputs_path)]
 
+
     for file in nc_files:
 
         file_name = os.path.basename(file)
         print(f"Procesando el archivo: {file_name}")
 
-        dataset = nc.Dataset(file)
+        dataset = xr.open_dataset(file, decode_times=False)
+
+        RAIN = export_raster(dataset, file_name, "RAIN", outputs_path, inputs_path)
 
         T2 = export_raster(dataset, file_name, "T2", outputs_path, inputs_path)
 
-        RAIN = export_raster(dataset, file_name, "RAIN", outputs_path, inputs_path)
-        
         HGT = export_raster(dataset, file_name, "HGT", outputs_path, inputs_path)
         
         SWDOWN = export_raster(dataset, file_name, "SWDOWN", outputs_path, inputs_path)
@@ -53,7 +55,7 @@ def extract_data(inputs_path, outputs_path):
 
         ET0 = calcET0(T2, RH, WS2m, SWDOWN, inputs_path)
 
-        dataset.close()
+        # dataset.close()
 
     return True
 
